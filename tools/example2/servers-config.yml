@@ -4,6 +4,11 @@ Parameters:
   EnvironmentName:
     Description: A parameter that we are passing with the env name.
     Type: String
+
+  S3CodeRepo:
+    Description: Full S3 path and file name of zipped file
+    Type: String
+    Default: 's3://ha-bucket-udacity/udacity.zip'
 Resources:
   LBSecGroup:
     Type: AWS::EC2::SecurityGroup
@@ -49,15 +54,23 @@ Resources:
       UserData:
         Fn::Base64: !Sub |
           #!/bin/bash
-          apt-get update -y
-          apt-get install apache2 -y
-          systemctl start apache2.service
-          cd /var/www/html
-          echo "Udacity Demo Web Server Running!" > index.html
+          # Install docker
+          apt-get update
+          apt-get install -y apt-transport-https ca-certificates curl software-properties-common
+          curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+          add-apt-repository \
+          "deb [arch=amd64] https://download.docker.com/linux/ubuntu \
+          $(lsb_release -cs) \
+          stable"
+          apt-get update
+          apt-get install -y docker-ce
+          usermod -aG docker ubuntu
+          docker run -p 80:8080 tomcat:8.0
       ImageId: ami-06d51e91cea0dac8d
+      KeyName: that-one
       SecurityGroups:
         - Ref: WebServerSecGroup
-      InstanceType: t3.small
+      InstanceType: t2.micro
       BlockDeviceMappings:
         - DeviceName: "/dev/sdk"
           Ebs:
